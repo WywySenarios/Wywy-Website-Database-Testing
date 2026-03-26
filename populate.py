@@ -194,19 +194,16 @@ def populate_transformation(cur: psycopg.Cursor, targets: TransformTargets):
                     values.append(2.3)
                     values.append(0.23)
 
-        for i in range(5):
+        for _ in range(5):
             cur.execute(
                 sql.SQL(
-                    "INSERT INTO {target_table_name} (id, {column_names}) VALUES (%s, {values});"
+                    "INSERT INTO {target_table_name} ({column_names}) VALUES ({values});"
                 ).format(
                     target_table_name=sql.Identifier(target_table_name),
                     column_names=sql.SQL(", ").join(columns_shape),
                     values=sql.SQL(", ").join(values_shape),
                 ),
-                (
-                    i + 1,
-                    *values,
-                ),
+                (*values,),
             )
 
     for target_table_name in tags_tables:
