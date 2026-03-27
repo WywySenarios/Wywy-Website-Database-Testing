@@ -262,7 +262,7 @@ def create_values(schema: TableInfo | DescriptorInfo) -> dict[str, DataDatatype]
             case "enum":
                 output[column_name] = None
             case "geodetic point":
-                output[column_name] = "POINT (0.2325 0.2325)"
+                output[column_name] = "'POINT (0.2325 0.2325)'"
                 output[f"{column_name}_latlong_accuracy"] = 0.23
                 output[f"{column_name}_altitude"] = 2.3
                 output[f"{column_name}_altitude_accuracy"] = 0.23
