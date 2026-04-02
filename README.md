@@ -41,11 +41,11 @@ The following constants are required:
 
 # Tests
 
-- @TODO SELECT table data
+- SELECT table data
 - @TODO SELECT descriptor data
 - @TODO SELECT tagging data
-- @TODO INSERT table data
-- @TODO INSERT descriptor data
+- INSERT table data
+- INSERT descriptor data
 - @TODO INSERT tagging data
 - @TODO UPSERT table data
 - @TODO UPSERT descriptor data
@@ -72,6 +72,10 @@ Tables that were previously existent and now removed from the configuration file
 ### Datatype Testing & Negative INSERT/UPSERT
 
 There is no testing done for datatypes, nor for invalid INSERTs.
+
+There is no testing done with additional errnoenous url segments.
+
+There is no testing done with 404 status codes.
 
 ### SELECT order by
 
