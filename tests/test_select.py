@@ -228,8 +228,8 @@ class TestSelectEndpoints(unittest.TestCase):
                     database_name=database_name, table_name=table_name
                 )
                 request_params: dict[str, Any] = {
-                    "url": endpoint,
                     **GENERIC_REQUEST_PARAMS,
+                    "url": endpoint,
                     "params": {"SELECT": "*", "ORDER_BY": "ASC"},
                 }
 
@@ -277,13 +277,13 @@ class TestSelectEndpoints(unittest.TestCase):
                     database_name=database_name, table_name=table_name
                 )
                 request_params: dict[str, Any] = {
-                    "url": endpoint,
                     **GENERIC_REQUEST_PARAMS,
+                    "url": endpoint,
                     "params": {"SELECT": "*", "ORDER_BY": "ASC"},
                 }
 
                 # main data
-                response = GET(**GENERIC_REQUEST_PARAMS)
+                response = GET(**request_params)
                 assert_data_response(self, response, table_schema)
 
                 # descriptors
