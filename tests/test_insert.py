@@ -48,7 +48,7 @@ def test_tagging_table(
             endpoint = TAG_ENDPOINT.substitute(
                 database_name=database_name,
                 table_name=table_name,
-                table_type="tag_names",
+                table_type=table_type,
             )
             request_params: dict[str, Any] = {
                 "url": endpoint,
