@@ -35,3 +35,37 @@ The following constants are required:
   - table_name
   - table_type
 - `AUTH_COOKIES: dict`: authentication cookies
+
+# Tests
+
+- @TODO SELECT table data
+- @TODO SELECT descriptor data
+- @TODO SELECT tagging data
+- @TODO INSERT table data
+- @TODO INSERT descriptor data
+- @TODO INSERT tagging data
+- @TODO UPSERT table data
+- @TODO UPSERT descriptor data
+- @TODO UPSERT tagging data
+
+## Testing Blindspots
+
+### Config Population Assumption
+
+Assume that the configuration file always has:
+
+- At least one valid database
+- At least one valid table per database
+- At least one valid descriptor
+
+### "Invalid Values"
+
+It is assumed that concatenating "this string will probably never be valid" to a required endpoint parameter will make the endpoint path invalid (e.g. `database_name + "..."` will be an invalid database name).
+
+### Previously Existent Tables
+
+Tables that were previously existent and now removed from the configuration file are not tested. It is assumed that the test that attempts to SELECT, INSERT, or UPSERT into a non-existent database will cover this blindspot.
+
+### Datatype Testing & Negative INSERT/UPSERT
+
+There is no testing done for datatypes, nor for invalid INSERTs.
