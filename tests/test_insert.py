@@ -2,7 +2,7 @@
 
 import unittest
 import requests
-from Wywy_Website_Types import DataDatatype
+from wywy_website_types import DataDatatype
 from config import CONFIG
 from constants import (
     DATA_ENDPOINT,

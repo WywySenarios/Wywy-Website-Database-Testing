@@ -8,7 +8,7 @@ This repository does not cover API-specific test cases. It only handles the gene
 
 This repo needs to be cloned as a submodule inside a folder that also contains:
 
-- Wywy-Website-Types submodule
+- `wywy_website_types`: Wywy-Website-Types submodule
 - `config.py` with the config exported as `CONFIG`
 - `endpoint_security_tests.py`
 - `constants.py`

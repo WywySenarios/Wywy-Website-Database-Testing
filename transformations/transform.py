@@ -1,7 +1,7 @@
 from config import CONFIG
 from constants import CONN_CONFIG
 from utils import to_lower_snake_case
-from Wywy_Website_Types import TableType, DescriptorInfo, TableInfo
+from wywy_website_types import TableType, DescriptorInfo, TableInfo
 import psycopg
 from typing import Callable, TypeAlias, Literal
 

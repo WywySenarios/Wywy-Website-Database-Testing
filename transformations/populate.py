@@ -1,6 +1,6 @@
 import psycopg
 from psycopg import sql
-from Wywy_Website_Types import DescriptorInfo, TableInfo, DataDatatype
+from wywy_website_types import DescriptorInfo, TableInfo, DataDatatype
 from utils import to_lower_snake_case
 from .transform import table_transform, TransformTargets
 from typing import List, Any

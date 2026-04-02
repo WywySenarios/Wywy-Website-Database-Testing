@@ -5,7 +5,7 @@ import datetime
 import re
 from requests import get as GET, Response, JSONDecodeError
 from config import CONFIG
-from Wywy_Website_Types import DataColumn, EntryTableData, DescriptorInfo, TableInfo
+from wywy_website_types import DataColumn, EntryTableData, DescriptorInfo, TableInfo
 from constants import DATA_ENDPOINT, TAG_ENDPOINT, GENERIC_REQUEST_PARAMS
 from utils import to_lower_snake_case
 from ..transformations.purge import purge_database
