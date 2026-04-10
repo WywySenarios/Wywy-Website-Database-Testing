@@ -248,21 +248,21 @@ def create_values(schema: TableInfo | DescriptorInfo) -> dict[str, DataDatatype]
             case "bool" | "boolean":
                 output[column_name] = True
             case "date":
-                output[column_name] = "'0001-01-01'"
+                output[column_name] = "0001-01-01"
             case "time":
-                output[column_name] = "'01:01:01'"
+                output[column_name] = "01:01:01"
             case "timestamp":
-                output[column_name] = "'0001-01-01T01:01:01'"
+                output[column_name] = "0001-01-01T01:01:01"
             case "int" | "integer":
                 output[column_name] = 23
             case "float" | "number":
                 output[column_name] = 2.3
             case "text" | "str" | "string":
-                output[column_name] = f"'{column_name} text'"
+                output[column_name] = f"{column_name} text"
             case "enum":
                 output[column_name] = None
             case "geodetic point":
-                output[column_name] = "'POINT (0.2325 0.2325)'"
+                output[column_name] = "POINT (0.2325 0.2325)"
                 output[f"{column_name}_latlong_accuracy"] = 0.23
                 output[f"{column_name}_altitude"] = 2.3
                 output[f"{column_name}_altitude_accuracy"] = 0.23

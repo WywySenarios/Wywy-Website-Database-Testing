@@ -190,12 +190,12 @@ class TestSelectEndpoints(unittest.TestCase):
 
     def test_insert_tag_names(self):
         """Test the INSERT tag_names endpoint for every table."""
-        test_tagging_table(self, {"tag_name": "'very unique tag name'"}, "tag_names")
+        test_tagging_table(self, {"tag_name": "very unique tag name"}, "tag_names")
 
     def test_insert_tag_aliases(self):
         """Test the INSERT tag_aliases endpoint for every table."""
         test_tagging_table(
-            self, {"alias": "'very unique tag alias'", "tag_id": 1}, "tag_aliases"
+            self, {"alias": "very unique tag alias", "tag_id": 1}, "tag_aliases"
         )
 
     def test_insert(self):
