@@ -12,13 +12,122 @@ from ..transformations.purge import purge_database
 from ..transformations.populate import populate_database
 from endpoint_security_tests import test_endpoint_security
 from .parameter_requisites_tests import negative_test_endpoint_parameters
-from typing import List, Any
+from typing import List, Any, Literal
+
+# START - tagging table schemas (they are not real descriptors)
+TAGS_SCHEMA: DescriptorInfo = {
+    "name": "",
+    "schema": [
+        {
+            "name": "entry_id",
+            "datatype": "int",
+            "entrytype": "none",
+        },
+        {"name": "tag_id", "datatype": "int", "entrytype": "none"},
+    ],
+}
+
+TAG_NAMES_SCHEMA: DescriptorInfo = {
+    "name": "",
+    "schema": [{"name": "tag_name", "datatype": "text", "entrytype": "none"}],
+}
+
+TAG_ALIASES_SCHEMA: DescriptorInfo = {
+    "name": "",
+    "schema": [{"name": "tag_id", "datatype": "int", "entrytype": "none"}],
+}
+
+TAG_GROUPS_SCHEMA: DescriptorInfo = {
+    "name": "",
+    "schema": [
+        {"name": "tag_id", "datatype": "int", "entrytype": "none"},
+        {"name": "group_name", "datatype": "text", "entrytype": "none"},
+    ],
+}
+# END - tagging table schemas
+
+
+def test_tagging_endpoint(
+    test_object: unittest.TestCase,
+    table_type: Literal["tags", "tag_aliases", "tag_groups", "tag_names"],
+    table_schema: DescriptorInfo,
+):
+    """Test a tagging endpoint.
+
+    Args:
+        test_object (unittest.TestCase): The testing object to use.
+        table_type (Literal[&quot;tags&quot;, &quot;tag_aliases&quot;, &quot;tag_groups&quot;, &quot;tag_names&quot;]): The table_type to test.
+        table_schema (DescriptorInfo): A mock schema of the table to test.
+    """
+    endpoint_security_tested: bool = False
+    negative_endpoint_paramters_tested: bool = False
+
+    # test SELECTing empty values
+    for database_schema in CONFIG["data"]:
+        database_name = to_lower_snake_case(database_schema["dbname"])
+        for parent_table_schema in database_schema["tables"]:
+            table_name = to_lower_snake_case(parent_table_schema["tableName"])
+            endpoint = TAG_ENDPOINT.substitute(
+                database_name=database_name,
+                table_name=table_name,
+                table_type=table_type,
+            )
+            request_params: dict[str, Any] = {
+                **GENERIC_REQUEST_PARAMS,
+                "url": endpoint,
+                "params": {"SELECT": "*", "ORDER_BY": "ASC"},
+            }
+
+            if not endpoint_security_tested:
+                test_endpoint_security(test_object, endpoint + "?SELECT=*&ORDER_BY=ASC")
+                endpoint_security_tested = True
+
+            # main data
+            response = GET(**request_params)
+            assert_data_response(test_object, response, table_schema)
+
+            if not negative_endpoint_paramters_tested:
+                negative_test_endpoint_parameters(
+                    test_object,
+                    TAG_ENDPOINT,
+                    {
+                        "database_name": database_name,
+                        "table_name": table_name,
+                        "table_type": table_type,
+                    },
+                    "GET",
+                    request_params,
+                )
+                negative_endpoint_paramters_tested = True
+
+    populate_database()
+
+    for database_schema in CONFIG["data"]:
+        database_name = to_lower_snake_case(database_schema["dbname"])
+        for parent_table_schema in database_schema["tables"]:
+            table_name = to_lower_snake_case(parent_table_schema["tableName"])
+            endpoint = TAG_ENDPOINT.substitute(
+                database_name=database_name,
+                table_name=table_name,
+                table_type=table_type,
+            )
+            request_params: dict[str, Any] = {
+                **GENERIC_REQUEST_PARAMS,
+                "url": endpoint,
+                "params": {"SELECT": "*", "ORDER_BY": "ASC"},
+            }
+
+            # main data
+            response = GET(**request_params)
+            assert_data_response(test_object, response, table_schema)
 
 
 def assert_data_response(
     test_object: unittest.TestCase,
     response: Response,
     item_schema: DescriptorInfo | TableInfo,
+    id_column_name: str = "id",
+    expected_num_rows: int | None = None,
 ) -> EntryTableData:
     column_schema: List[DataColumn] = item_schema["schema"]
 
@@ -57,7 +166,7 @@ Failed to decode JSON:
     test_object.assertIsInstance(data["columns"], list)
     column_name_iterator = iter(data["columns"])
     # ID column
-    test_object.assertEqual(next(column_name_iterator), "id")
+    test_object.assertEqual(next(column_name_iterator), id_column_name)
 
     # primary_tag
     if item_schema.get("tagging", False):
@@ -266,9 +375,6 @@ class TestSelectEndpoints(unittest.TestCase):
 
         populate_database()
 
-        # @TODO verify invalid URLs
-
-        # Test on a mock dataset
         for database_schema in CONFIG["data"]:
             database_name = to_lower_snake_case(database_schema["dbname"])
             for table_schema in database_schema["tables"]:
@@ -296,14 +402,18 @@ class TestSelectEndpoints(unittest.TestCase):
                 #         )
                 #         assert_data_response(self, response, descriptor_schema)
 
-    # def test_select_tags(self):
-    #     """Test the SELECT tags endpoint for every table."""
+    def test_select_tags(self):
+        """Test the SELECT tags endpoint for every table."""
+        test_tagging_endpoint(self, "tags", TAGS_SCHEMA)
 
-    # def test_select_tag_names(self):
-    #     """Test the SELECT tag names endpoint for every table."""
+    def test_select_tag_names(self):
+        """Test the SELECT tag names endpoint for every table."""
+        test_tagging_endpoint(self, "tag_names", TAG_NAMES_SCHEMA)
 
-    # def test_select_tag_aliases(self):
-    #     """Test the SELECT tag aliases endpoint for every table."""
+    def test_select_tag_aliases(self):
+        """Test the SELECT tag aliases endpoint for every table."""
+        test_tagging_endpoint(self, "tag_aliases", TAG_ALIASES_SCHEMA)
 
-    # def test_select_tag_groups(self):
-    #     """Test the SELECT tag groups endpoint for every table."""
+    def test_select_tag_groups(self):
+        """Test the SELECT tag groups endpoint for every table."""
+        test_tagging_endpoint(self, "tag_groups", TAG_GROUPS_SCHEMA)
