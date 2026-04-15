@@ -59,6 +59,8 @@ def test_tagging_endpoint(
         table_type (Literal[&quot;tags&quot;, &quot;tag_aliases&quot;, &quot;tag_groups&quot;, &quot;tag_names&quot;]): The table_type to test.
         table_schema (DescriptorInfo): A mock schema of the table to test.
     """
+    id_column_name = "alias" if table_type == "tag_aliases" else "id"
+
     endpoint_security_tested: bool = False
     negative_endpoint_paramters_tested: bool = False
 
@@ -84,7 +86,9 @@ def test_tagging_endpoint(
 
             # main data
             response = GET(**request_params)
-            assert_data_response(test_object, response, table_schema)
+            assert_data_response(
+                test_object, response, table_schema, id_column_name=id_column_name
+            )
 
             if not negative_endpoint_paramters_tested:
                 negative_test_endpoint_parameters(
@@ -119,7 +123,9 @@ def test_tagging_endpoint(
 
             # main data
             response = GET(**request_params)
-            assert_data_response(test_object, response, table_schema)
+            assert_data_response(
+                test_object, response, table_schema, id_column_name=id_column_name
+            )
 
 
 def assert_data_response(
