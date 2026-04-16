@@ -36,5 +36,5 @@ def negative_test_endpoint_parameters(
         test_object.assertEqual(
             response.status_code,
             400,
-            f"Invalid endpoint access (invalid required parameter). Expected status 400, received {response.status_code}: {response.text}.",
+            f"Invalid (invalid required parameter) endpoint access to {endpoint} did not receive status 400. Expected status 400, received {response.status_code}: {response.text}.",
         )
