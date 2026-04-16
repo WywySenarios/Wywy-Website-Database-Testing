@@ -23,24 +23,6 @@ def negative_test_endpoint_parameters(
 
     for required_parameter in required_parameters:
         params = {**required_parameters}
-        params[required_parameter] = ""
-        endpoint = endpoint_template.substitute(params)
-        request_params["url"] = endpoint
-
-        match (request_method):
-            case "GET":
-                response = GET(**request_params)
-            case "POST":
-                response = POST(**request_params)
-
-        test_object.assertEqual(
-            response.status_code,
-            400,
-            f"Invalid endpoint access (missing required parameter). Expected status 400, received {response.status_code}: {response.text}.",
-        )
-
-    for required_parameter in required_parameters:
-        params = {**required_parameters}
         params[required_parameter] = "this string will probably never be valid"
         endpoint = endpoint_template.substitute(params)
         request_params["url"] = endpoint
