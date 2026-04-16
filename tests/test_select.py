@@ -368,18 +368,77 @@ class TestSelectEndpoints(unittest.TestCase):
             assert_data_response,
         )
 
-    # def test_select_tags(self):
-    #     """Test the SELECT tags endpoint for every table."""
-    #     test_tagging_endpoint(self, "tags", TAGS_SCHEMA)
+    def test_select_tags(self):
+        """Test the SELECT tags endpoint for every table."""
+        test_select_endpoint(
+            self,
+            table_endpoint_iterator,
+            TAG_ENDPOINT,
+            {
+                "table_type": "tags",
+            },
+            {
+                **GENERIC_REQUEST_PARAMS,
+                "params": {"SELECT": "*", "ORDER_BY": "ASC"},
+            },
+            assert_tagging_response,
+            response_validator_options={"schema": TAGS_SCHEMA},
+        )
 
     def test_select_tag_names(self):
         """Test the SELECT tag names endpoint for every table."""
-        test_tagging_endpoint(self, "tag_names", TAG_NAMES_SCHEMA)
+        test_select_endpoint(
+            self,
+            table_endpoint_iterator,
+            TAG_ENDPOINT,
+            {
+                "table_type": "tag_names",
+            },
+            {
+                **GENERIC_REQUEST_PARAMS,
+                "params": {"SELECT": "*", "ORDER_BY": "ASC"},
+            },
+            assert_tagging_response,
+            response_validator_options={"schema": TAG_NAMES_SCHEMA},
+        )
 
     def test_select_tag_aliases(self):
         """Test the SELECT tag aliases endpoint for every table."""
-        test_tagging_endpoint(self, "tag_aliases", TAG_ALIASES_SCHEMA)
+        test_select_endpoint(
+            self,
+            table_endpoint_iterator,
+            TAG_ENDPOINT,
+            {
+                "table_type": "tag_aliases",
+            },
+            {
+                **GENERIC_REQUEST_PARAMS,
+                "params": {"SELECT": "*", "ORDER_BY": "ASC"},
+            },
+            assert_tagging_response,
+            response_validator_options={
+                "id_column_name": "alias",
+                "schema": TAG_ALIASES_SCHEMA,
+            },
+        )
 
+    @unittest.skip("Tag groups are not implemented yet.")
     def test_select_tag_groups(self):
         """Test the SELECT tag groups endpoint for every table."""
-        test_tagging_endpoint(self, "tag_groups", TAG_GROUPS_SCHEMA)
+        test_select_endpoint(
+            self,
+            table_endpoint_iterator,
+            TAG_ENDPOINT,
+            {
+                "table_type": "tag_groups",
+            },
+            {
+                **GENERIC_REQUEST_PARAMS,
+                "params": {"SELECT": "*", "ORDER_BY": "ASC"},
+            },
+            assert_tagging_response,
+            response_validator_options={"schema": TAG_GROUPS_SCHEMA},
+        )
+
+    # def test_select_row(self):
+    #     """Test selecting a single row inside a main table."""
