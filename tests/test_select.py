@@ -10,7 +10,6 @@ from generic_database_api.endpoint_iterator import (
     descriptor_endpoint_iterator,
     EndpointIteratorFactory,
 )
-from config import CONFIG
 from wywy_website_types import DataColumn, EntryTableData, DescriptorInfo, TableInfo
 from constants import DATA_ENDPOINT, TAG_ENDPOINT, GENERIC_REQUEST_PARAMS
 from utils import to_lower_snake_case
@@ -18,7 +17,7 @@ from ..transformations.purge import purge_database
 from ..transformations.populate import populate_database
 from endpoint_security_tests import test_endpoint_security
 from .parameter_requisites_tests import negative_test_endpoint_parameters
-from typing import List, Any, Literal
+from typing import List, Any, TypeAlias, Callable
 
 # START - tagging table schemas (they are not real descriptors)
 TAGS_SCHEMA: DescriptorInfo = {
@@ -52,6 +51,18 @@ TAG_GROUPS_SCHEMA: DescriptorInfo = {
 }
 # END - tagging table schemas
 
+"""A response validation function that can be used with test_select_endpoint.
+
+Args:
+    test_object (unittest.TestCase): The test object to use.
+    entry_schema (TableInfo | DescriptorInfo): The entry schema to validate with.
+    response (Response): The response to validate.
+    options (dict[str, Any]): Options.
+"""
+ResponseValidator: TypeAlias = Callable[
+    [unittest.TestCase, Response, TableInfo | DescriptorInfo, dict[str, Any]], Any
+]
+
 
 def test_select_endpoint(
     test_object: unittest.TestCase,
@@ -59,7 +70,8 @@ def test_select_endpoint(
     endpoint_template: Template,
     endpoint_params: dict[str, Any],
     request_params: dict[str, Any],
-    data_response_params: dict[str, Any] = {},
+    response_validator: ResponseValidator,
+    response_validator_options: dict[str, Any] = {},
 ):
     """Runs relevant SELECT test cases on the given endpoints.
     * endpoint security tests
@@ -76,7 +88,8 @@ def test_select_endpoint(
         endpoint_template (Template): The endpoint template to use during negative request parameter tests.
         endpoint_params (dict[str, Any]): The endpoint params to use during negative request parameter tests.
         request_params (dict[str, str]): Request parameters (e.g. headers, cookies).
-        data_response_params (dict[str, str], Optional): Additional parameters to pass into assert_data_response. Defaults to {}.
+        response_validator (ResponseValidator): The response validator function to use.
+        response_validator_options (dict[str, Any], Optional): Additional parameters to pass into assert_data_response. Defaults to {}.
     """
     endpoint_security_tested: bool = False
     negative_endpoint_paramters_tested: bool = False
@@ -94,8 +107,8 @@ def test_select_endpoint(
 
         # main data
         response = GET(**computed_request_params)
-        assert_data_response(
-            test_object, response, entry_schema, **data_response_params
+        response_validator(
+            test_object, response, entry_schema, response_validator_options
         )
 
         if not negative_endpoint_paramters_tested:
@@ -118,99 +131,19 @@ def test_select_endpoint(
 
         # main data
         response = GET(**computed_request_params)
-        assert_data_response(
-            test_object, response, entry_schema, **data_response_params
+        response_validator(
+            test_object, response, entry_schema, response_validator_options
         )
-
-
-def test_tagging_endpoint(
-    test_object: unittest.TestCase,
-    table_type: Literal["tags", "tag_aliases", "tag_groups", "tag_names"],
-    table_schema: DescriptorInfo,
-):
-    """Test a tagging endpoint.
-
-    Args:
-        test_object (unittest.TestCase): The testing object to use.
-        table_type (Literal[&quot;tags&quot;, &quot;tag_aliases&quot;, &quot;tag_groups&quot;, &quot;tag_names&quot;]): The table_type to test.
-        table_schema (DescriptorInfo): A mock schema of the table to test.
-    """
-    id_column_name = "alias" if table_type == "tag_aliases" else "id"
-
-    endpoint_security_tested: bool = False
-    negative_endpoint_paramters_tested: bool = False
-
-    # test SELECTing empty values
-    for database_schema in CONFIG["data"]:
-        database_name = to_lower_snake_case(database_schema["dbname"])
-        for parent_table_schema in database_schema["tables"]:
-            table_name = to_lower_snake_case(parent_table_schema["tableName"])
-            endpoint = TAG_ENDPOINT.substitute(
-                database_name=database_name,
-                table_name=table_name,
-                table_type=table_type,
-            )
-            request_params: dict[str, Any] = {
-                **GENERIC_REQUEST_PARAMS,
-                "url": endpoint,
-                "params": {"SELECT": "*", "ORDER_BY": "ASC"},
-            }
-
-            if not endpoint_security_tested:
-                test_endpoint_security(test_object, endpoint + "?SELECT=*&ORDER_BY=ASC")
-                endpoint_security_tested = True
-
-            # main data
-            response = GET(**request_params)
-            assert_data_response(
-                test_object, response, table_schema, id_column_name=id_column_name
-            )
-
-            if not negative_endpoint_paramters_tested:
-                negative_test_endpoint_parameters(
-                    test_object,
-                    TAG_ENDPOINT,
-                    {
-                        "database_name": database_name,
-                        "table_name": table_name,
-                        "table_type": table_type,
-                    },
-                    "GET",
-                    request_params,
-                )
-                negative_endpoint_paramters_tested = True
-
-    populate_database()
-
-    for database_schema in CONFIG["data"]:
-        database_name = to_lower_snake_case(database_schema["dbname"])
-        for parent_table_schema in database_schema["tables"]:
-            table_name = to_lower_snake_case(parent_table_schema["tableName"])
-            endpoint = TAG_ENDPOINT.substitute(
-                database_name=database_name,
-                table_name=table_name,
-                table_type=table_type,
-            )
-            request_params: dict[str, Any] = {
-                **GENERIC_REQUEST_PARAMS,
-                "url": endpoint,
-                "params": {"SELECT": "*", "ORDER_BY": "ASC"},
-            }
-
-            # main data
-            response = GET(**request_params)
-            assert_data_response(
-                test_object, response, table_schema, id_column_name=id_column_name
-            )
 
 
 def assert_data_response(
     test_object: unittest.TestCase,
     response: Response,
     item_schema: DescriptorInfo | TableInfo,
-    id_column_name: str = "id",
-    expected_num_rows: int | None = None,
+    options: dict[str, Any],
 ) -> EntryTableData:
+    id_column_name = options.get("id_column_name", "id")
+
     column_schema: List[DataColumn] = item_schema["schema"]
 
     test_object.assertEqual(
@@ -398,6 +331,22 @@ Failed to decode JSON:
     return data
 
 
+def assert_tagging_response(
+    test_object: unittest.TestCase,
+    response: Response,
+    entry_schema: TableInfo | DescriptorInfo,
+    options: dict[str, Any],
+):
+    if entry_schema.get("tagging", False) is True:
+        assert_data_response(test_object, response, entry_schema, options)
+    else:
+        test_object.assertEqual(
+            400,
+            response.status_code,
+            f"Expected 400 status response. Received {response.status_code}: {response.text}",
+        )
+
+
 class TestSelectEndpoints(unittest.TestCase):
     def setUp(self):
         pass
@@ -416,6 +365,7 @@ class TestSelectEndpoints(unittest.TestCase):
                 **GENERIC_REQUEST_PARAMS,
                 "params": {"SELECT": "*", "ORDER_BY": "ASC"},
             },
+            assert_data_response,
         )
 
     # def test_select_tags(self):
