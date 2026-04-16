@@ -1,9 +1,15 @@
 """SELECT related tests for sql-receptionist."""
 
+from string import Template
 import unittest
 import datetime
 import re
 from requests import get as GET, Response, JSONDecodeError
+from generic_database_api.endpoint_iterator import (
+    table_endpoint_iterator,
+    descriptor_endpoint_iterator,
+    EndpointIteratorFactory,
+)
 from config import CONFIG
 from wywy_website_types import DataColumn, EntryTableData, DescriptorInfo, TableInfo
 from constants import DATA_ENDPOINT, TAG_ENDPOINT, GENERIC_REQUEST_PARAMS
@@ -45,6 +51,76 @@ TAG_GROUPS_SCHEMA: DescriptorInfo = {
     ],
 }
 # END - tagging table schemas
+
+
+def test_select_endpoint(
+    test_object: unittest.TestCase,
+    endpoint_iterator_factory: EndpointIteratorFactory,
+    endpoint_template: Template,
+    endpoint_params: dict[str, Any],
+    request_params: dict[str, Any],
+    data_response_params: dict[str, Any] = {},
+):
+    """Runs relevant SELECT test cases on the given endpoints.
+    * endpoint security tests
+    * negative request parameter tests
+    * SELECT test
+
+    It is assumed that populate_database() has not yet been called.
+
+    This function does not clean up database values after itself.
+
+    Args:
+        test_object (unittest.TestCase): The test object to use.
+        endpoint_iterator (endpoint_iterator): The endpoint iterator to use.
+        endpoint_template (Template): The endpoint template to use during negative request parameter tests.
+        endpoint_params (dict[str, Any]): The endpoint params to use during negative request parameter tests.
+        request_params (dict[str, str]): Request parameters (e.g. headers, cookies).
+        data_response_params (dict[str, str], Optional): Additional parameters to pass into assert_data_response. Defaults to {}.
+    """
+    endpoint_security_tested: bool = False
+    negative_endpoint_paramters_tested: bool = False
+
+    # test SELECTing empty values
+    for computed_endpoint_params, entry_schema in endpoint_iterator_factory(
+        endpoint_params
+    ):
+        endpoint = endpoint_template.substitute(computed_endpoint_params)
+        computed_request_params: dict[str, Any] = {**request_params, "url": endpoint}
+
+        if not endpoint_security_tested:
+            test_endpoint_security(test_object, endpoint)
+            endpoint_security_tested = True
+
+        # main data
+        response = GET(**computed_request_params)
+        assert_data_response(
+            test_object, response, entry_schema, **data_response_params
+        )
+
+        if not negative_endpoint_paramters_tested:
+            negative_test_endpoint_parameters(
+                test_object,
+                endpoint_template,
+                computed_endpoint_params,
+                "GET",
+                computed_request_params,
+            )
+            negative_endpoint_paramters_tested = True
+
+    populate_database()
+
+    for computed_endpoint_params, entry_schema in endpoint_iterator_factory(
+        endpoint_params
+    ):
+        endpoint = endpoint_template.substitute(computed_endpoint_params)
+        computed_request_params: dict[str, Any] = {**request_params, "url": endpoint}
+
+        # main data
+        response = GET(**computed_request_params)
+        assert_data_response(
+            test_object, response, entry_schema, **data_response_params
+        )
 
 
 def test_tagging_endpoint(
@@ -330,87 +406,21 @@ class TestSelectEndpoints(unittest.TestCase):
         purge_database()
 
     def test_select(self):
-        """Test the SELECT data (main table & descriptors) endpoint for every table."""
-        endpoint_security_tested: bool = False
-        negative_endpoint_paramters_tested: bool = False
+        """Test the SELECT data (main tables) endpoint for every table."""
+        test_select_endpoint(
+            self,
+            table_endpoint_iterator,
+            DATA_ENDPOINT,
+            {},
+            {
+                **GENERIC_REQUEST_PARAMS,
+                "params": {"SELECT": "*", "ORDER_BY": "ASC"},
+            },
+        )
 
-        # Can the SQL-receptionist handle empty values?
-        for database_schema in CONFIG["data"]:
-            database_name = to_lower_snake_case(database_schema["dbname"])
-            for table_schema in database_schema["tables"]:
-                table_name = to_lower_snake_case(table_schema["tableName"])
-                endpoint = DATA_ENDPOINT.substitute(
-                    database_name=database_name, table_name=table_name
-                )
-                request_params: dict[str, Any] = {
-                    **GENERIC_REQUEST_PARAMS,
-                    "url": endpoint,
-                    "params": {"SELECT": "*", "ORDER_BY": "ASC"},
-                }
-
-                if not endpoint_security_tested:
-                    test_endpoint_security(self, endpoint + "?SELECT=*&ORDER_BY=ASC")
-                    endpoint_security_tested = True
-
-                # main data
-                response = GET(**request_params)
-                assert_data_response(self, response, table_schema)
-
-                # descriptors
-                # if "descriptors" in table_schema:
-                #     for descriptor_schema in table_schema["descriptors"]:
-                #         response = requests.get(
-                #             f"{SQL_RECEPTIONIST_URL}/{database_name}/{table_name}/descriptors/{to_lower_snake_case(descriptor_schema["name"])}?SELECT=*&ORDER_BY=ASC",
-                #             headers={"Origin": environ["MAIN_URL"]},
-                #             cookies=SQL_RECEPTIONIST_AUTH_COOKIES,
-                #         )
-                #         assert_data_response(self, response, descriptor_schema)
-
-                if not negative_endpoint_paramters_tested:
-                    negative_test_endpoint_parameters(
-                        self,
-                        DATA_ENDPOINT,
-                        {
-                            "database_name": database_name,
-                            "table_name": table_name,
-                        },
-                        "GET",
-                        request_params,
-                    )
-                    negative_endpoint_paramters_tested = True
-
-        populate_database()
-
-        for database_schema in CONFIG["data"]:
-            database_name = to_lower_snake_case(database_schema["dbname"])
-            for table_schema in database_schema["tables"]:
-                table_name = to_lower_snake_case(table_schema["tableName"])
-                endpoint = DATA_ENDPOINT.substitute(
-                    database_name=database_name, table_name=table_name
-                )
-                request_params: dict[str, Any] = {
-                    **GENERIC_REQUEST_PARAMS,
-                    "url": endpoint,
-                    "params": {"SELECT": "*", "ORDER_BY": "ASC"},
-                }
-
-                # main data
-                response = GET(**request_params)
-                assert_data_response(self, response, table_schema)
-
-                # descriptors
-                # if "descriptors" in table_schema:
-                #     for descriptor_schema in table_schema["descriptors"]:
-                #         response = requests.get(
-                #             f"{SQL_RECEPTIONIST_URL}/{database_name}/{table_name}/descriptors/{to_lower_snake_case(descriptor_schema["name"])}?SELECT=*&ORDER_BY=ASC",
-                #             headers={"Origin": environ["MAIN_URL"]},
-                #             cookies=SQL_RECEPTIONIST_AUTH_COOKIES,
-                #         )
-                #         assert_data_response(self, response, descriptor_schema)
-
-    def test_select_tags(self):
-        """Test the SELECT tags endpoint for every table."""
-        test_tagging_endpoint(self, "tags", TAGS_SCHEMA)
+    # def test_select_tags(self):
+    #     """Test the SELECT tags endpoint for every table."""
+    #     test_tagging_endpoint(self, "tags", TAGS_SCHEMA)
 
     def test_select_tag_names(self):
         """Test the SELECT tag names endpoint for every table."""
