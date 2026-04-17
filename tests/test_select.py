@@ -338,7 +338,7 @@ def assert_tagging_response(
     options: dict[str, Any],
 ):
     if entry_schema.get("tagging", False) is True:
-        assert_data_response(test_object, response, entry_schema, options)
+        assert_data_response(test_object, response, options["schema"], options)
     else:
         test_object.assertEqual(
             400,
