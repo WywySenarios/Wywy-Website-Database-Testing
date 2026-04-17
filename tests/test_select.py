@@ -5,7 +5,7 @@ import unittest
 import datetime
 import re
 from requests import get as GET, Response, JSONDecodeError
-from generic_database_api.endpoint_iterator import (
+from ..endpoint_iterator import (
     table_endpoint_iterator,
     descriptor_endpoint_iterator,
     EndpointIteratorFactory,
