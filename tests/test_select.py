@@ -11,7 +11,12 @@ from generic_database_api.endpoint_iterator import (
     EndpointIteratorFactory,
 )
 from wywy_website_types import DataColumn, EntryTableData, DescriptorInfo, TableInfo
-from constants import DATA_ENDPOINT, TAG_ENDPOINT, GENERIC_REQUEST_PARAMS
+from constants import (
+    DATA_ENDPOINT,
+    TAG_ENDPOINT,
+    DESCRIPTOR_ENDPOINT,
+    GENERIC_REQUEST_PARAMS,
+)
 from utils import to_lower_snake_case
 from ..transformations.purge import purge_database
 from ..transformations.populate import populate_database
@@ -360,6 +365,20 @@ class TestSelectEndpoints(unittest.TestCase):
             self,
             table_endpoint_iterator,
             DATA_ENDPOINT,
+            {},
+            {
+                **GENERIC_REQUEST_PARAMS,
+                "params": {"SELECT": "*", "ORDER_BY": "ASC"},
+            },
+            assert_data_response,
+        )
+
+    def test_select_descriptors(self):
+        """Test the SELECT descriptor data endpoint for every descriptor."""
+        test_select_endpoint(
+            self,
+            descriptor_endpoint_iterator,
+            DESCRIPTOR_ENDPOINT,
             {},
             {
                 **GENERIC_REQUEST_PARAMS,
