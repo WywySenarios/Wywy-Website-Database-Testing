@@ -498,3 +498,41 @@ class TestSelectEndpoints(unittest.TestCase):
             assert_row_response,
             valid_on_empty_database=False,
         )
+
+    def test_select_descriptors_parent_table(self):
+        """Test SELECTing descriptors by parent ID."""
+        test_select_endpoint(
+            self,
+            descriptor_endpoint_iterator,
+            DESCRIPTOR_ENDPOINT,
+            {},
+            {**GENERIC_REQUEST_PARAMS, "params": {"parent_id": 1, "ORDER_BY": "DESC"}},
+            assert_data_response,
+        )
+
+    def test_select_tags_parent_table(self):
+        """Test SELECTing secondary tags by parent ID."""
+        test_select_endpoint(
+            self,
+            table_endpoint_iterator,
+            TAG_ENDPOINT,
+            {"table_type": "tags"},
+            {**GENERIC_REQUEST_PARAMS, "params": {"parent_id": 1, "ORDER_BY": "DESC"}},
+            assert_tagging_response,
+            response_validator_options={"schema": TAGS_SCHEMA},
+        )
+
+    def test_select_tag_aliases_parent_table(self):
+        """Test SELECTing tag aliases by parent ID."""
+        test_select_endpoint(
+            self,
+            table_endpoint_iterator,
+            TAG_ENDPOINT,
+            {"table_type": "tag_aliases"},
+            {**GENERIC_REQUEST_PARAMS, "params": {"parent_id": 1, "ORDER_BY": "DESC"}},
+            assert_tagging_response,
+            response_validator_options={
+                "id_column_name": "alias",
+                "schema": TAG_ALIASES_SCHEMA,
+            },
+        )
