@@ -77,6 +77,7 @@ def test_select_endpoint(
     request_params: dict[str, Any],
     response_validator: ResponseValidator,
     response_validator_options: dict[str, Any] = {},
+    valid_on_empty_database: bool = True,
 ):
     """Runs relevant SELECT test cases on the given endpoints.
     * endpoint security tests
@@ -95,9 +96,13 @@ def test_select_endpoint(
         request_params (dict[str, str]): Request parameters (e.g. headers, cookies).
         response_validator (ResponseValidator): The response validator function to use.
         response_validator_options (dict[str, Any], Optional): Additional parameters to pass into assert_data_response. Defaults to {}.
+        valid_on_empty_database (bool, Optional): Whether or not an empty database should be expected to pass validation.
     """
     endpoint_security_tested: bool = False
     negative_endpoint_paramters_tested: bool = False
+
+    if not valid_on_empty_database:
+        populate_database()
 
     # test SELECTing empty values
     for computed_endpoint_params, entry_schema in endpoint_iterator_factory(
@@ -126,7 +131,8 @@ def test_select_endpoint(
             )
             negative_endpoint_paramters_tested = True
 
-    populate_database()
+    if valid_on_empty_database:
+        populate_database()
 
     for computed_endpoint_params, entry_schema in endpoint_iterator_factory(
         endpoint_params
@@ -352,6 +358,28 @@ def assert_tagging_response(
         )
 
 
+def assert_row_response(
+    test_object: unittest.TestCase,
+    response: Response,
+    entry_schema: TableInfo | DescriptorInfo,
+    options: dict[str, Any],
+):
+    """Asserts that the given response is valid, conformant to the schema, and contains a single row of data.
+
+    Args:
+        test_object (unittest.TestCase): The test object to use.
+        response (Response): The response to validate.
+        entry_schema (TableInfo | DescriptorInfo): The schema to validate against.
+        options (dict[str, Any]): Options for assert_data_response.
+    """
+    data = assert_data_response(test_object, response, entry_schema, options)
+    test_object.assertEqual(
+        1,
+        len(data["data"]),
+        f"The endpoint returned {len(data["data"])} rows instead of 1 row.",
+    )
+
+
 class TestSelectEndpoints(unittest.TestCase):
     def setUp(self):
         pass
@@ -459,5 +487,14 @@ class TestSelectEndpoints(unittest.TestCase):
             response_validator_options={"schema": TAG_GROUPS_SCHEMA},
         )
 
-    # def test_select_row(self):
-    #     """Test selecting a single row inside a main table."""
+    def test_select_row(self):
+        """Test selecting a single row inside a main table."""
+        test_select_endpoint(
+            self,
+            table_endpoint_iterator,
+            DATA_ENDPOINT,
+            {},
+            {**GENERIC_REQUEST_PARAMS, "params": {"id": 1, "ORDER_BY": "DESC"}},
+            assert_row_response,
+            valid_on_empty_database=False,
+        )
