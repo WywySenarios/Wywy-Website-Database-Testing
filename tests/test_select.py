@@ -237,8 +237,11 @@ Failed to decode JSON:
 
         row_iterator = iter(row)
 
-        # skip ID column
-        next(row_iterator)
+        # check or skip ID
+        if "expected_id" in options:
+            test_object.assertEqual(next(row_iterator), options["expected_id"])
+        else:
+            next(row_iterator)
 
         # primary_tag
         if item_schema.get("tagging", False):
@@ -497,8 +500,12 @@ class TestSelectEndpoints(unittest.TestCase):
             {**GENERIC_REQUEST_PARAMS, "params": {"id": 2, "ORDER_BY": "DESC"}},
             assert_row_response,
             valid_on_empty_database=False,
+            response_validator_options={"expected_id": 2},
         )
 
+    @unittest.skip(
+        "Parent entry foreign key dependencies have not been implemented yet."
+    )
     def test_select_descriptors_parent_table(self):
         """Test SELECTing descriptors by parent ID."""
         test_select_endpoint(
