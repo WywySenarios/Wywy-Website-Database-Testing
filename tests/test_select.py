@@ -494,7 +494,7 @@ class TestSelectEndpoints(unittest.TestCase):
             table_endpoint_iterator,
             DATA_ENDPOINT,
             {},
-            {**GENERIC_REQUEST_PARAMS, "params": {"id": 1, "ORDER_BY": "DESC"}},
+            {**GENERIC_REQUEST_PARAMS, "params": {"id": 2, "ORDER_BY": "DESC"}},
             assert_row_response,
             valid_on_empty_database=False,
         )
@@ -517,7 +517,7 @@ class TestSelectEndpoints(unittest.TestCase):
             table_endpoint_iterator,
             TAG_ENDPOINT,
             {"table_type": "tags"},
-            {**GENERIC_REQUEST_PARAMS, "params": {"parent_id": 1, "ORDER_BY": "DESC"}},
+            {**GENERIC_REQUEST_PARAMS, "params": {"parent_id": 2, "ORDER_BY": "DESC"}},
             assert_tagging_response,
             response_validator_options={"schema": TAGS_SCHEMA},
         )
@@ -529,7 +529,7 @@ class TestSelectEndpoints(unittest.TestCase):
             table_endpoint_iterator,
             TAG_ENDPOINT,
             {"table_type": "tag_aliases"},
-            {**GENERIC_REQUEST_PARAMS, "params": {"parent_id": 1, "ORDER_BY": "DESC"}},
+            {**GENERIC_REQUEST_PARAMS, "params": {"parent_id": 2, "ORDER_BY": "DESC"}},
             assert_tagging_response,
             response_validator_options={
                 "id_column_name": "alias",
