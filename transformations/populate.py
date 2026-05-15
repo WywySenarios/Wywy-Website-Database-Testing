@@ -46,7 +46,7 @@ def populate_transformation(cur: psycopg.Cursor, targets: TransformTargets):
     for target_table_name in tag_names_tables:
         cur.execute(
             sql.SQL(
-                "INSERT INTO {target_table_name} (tag_name) VALUES (%s), (%s), (%s), (%s), (%s);"
+                "INSERT INTO {target_table_name} (id, tag_name) VALUES (1, %s), (2, %s), (3, %s), (4, %s), (5, %s) ON CONFLICT (id) DO UPDATE SET tag_name = EXCLUDED.tag_name;"
             ).format(target_table_name=sql.Identifier(target_table_name)),
             (
                 f"{target_table_name} tag 1",
