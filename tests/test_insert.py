@@ -111,70 +111,75 @@ def test_tagging_table(
         database_name = to_lower_snake_case(database_info["dbname"])
         for table_info in database_info["tables"]:
             table_name = to_lower_snake_case(table_info["tableName"])
-            endpoint = TAG_ENDPOINT.substitute(
-                database_name=database_name,
-                table_name=table_name,
+            with test_object.subTest(
+                database=database_name,
+                table=table_name,
                 table_type=table_type,
-            )
-            request_params: dict[str, Any] = {
-                "url": endpoint,
-                **GENERIC_REQUEST_PARAMS,
-            }
-            response = requests.post(
-                **request_params,
-                json=payload,
-            )
-            if table_info.get("tagging", False):
-                test_object.assertEqual(
-                    response.status_code,
-                    200,
-                    f"Valid INSERT to {endpoint} is not OK: {response.status_code}: {response.text}",
+            ):
+                endpoint = TAG_ENDPOINT.substitute(
+                    database_name=database_name,
+                    table_name=table_name,
+                    table_type=table_type,
                 )
-
-                # also check for empty body or JSON case if we haven't already done so
-                if not empty_body_json_checked:
-                    # is INSERTing nothing or an empty JSON caught?
-                    response = requests.post(
-                        **request_params,
-                        data="",
+                request_params: dict[str, Any] = {
+                    "url": endpoint,
+                    **GENERIC_REQUEST_PARAMS,
+                }
+                response = requests.post(
+                    **request_params,
+                    json=payload,
+                )
+                if table_info.get("tagging", False):
+                    test_object.assertEqual(
+                        response.status_code,
+                        200,
+                        f"Valid INSERT to {endpoint} is not OK: {response.status_code}: {response.text}",
                     )
+
+                    # also check for empty body or JSON case if we haven't already done so
+                    if not empty_body_json_checked:
+                        empty_body_json_checked = True
+                        # is INSERTing nothing or an empty JSON caught?
+                        response = requests.post(
+                            **request_params,
+                            data="",
+                        )
+                        test_object.assertEqual(
+                            response.status_code,
+                            400,
+                            f"Invalid INSERT (empty body) to {endpoint} does not respond with status 400: {response.status_code}: {response.text}",
+                        )
+                        response = requests.post(
+                            **request_params,
+                            json={},
+                        )
+                        test_object.assertEqual(
+                            response.status_code,
+                            400,
+                            f"Invalid INSERT (empty JSON) to {endpoint} does not respond with status 400: {response.status_code}: {response.text}",
+                        )
+
+                    if not endpoint_params_tested:
+                        endpoint_params_tested = True
+                        negative_test_endpoint_parameters(
+                            test_object,
+                            TAG_ENDPOINT,
+                            {
+                                "database_name": database_name,
+                                "table_name": table_name,
+                                "table_type": table_type,
+                            },
+                            "POST",
+                            request_params,
+                        )
+
+                else:
+                    # check that tables with tagging disabled cannot INSERT tags
                     test_object.assertEqual(
                         response.status_code,
                         400,
-                        f"Invalid INSERT (empty body) to {endpoint} does not respond with status 400: {response.status_code}: {response.text}",
+                        f"Invalid insert (tagging disabled) to {endpoint} did not respond with status 400: {response.status_code}: {response.text}",
                     )
-                    response = requests.post(
-                        **request_params,
-                        json={},
-                    )
-                    test_object.assertEqual(
-                        response.status_code,
-                        400,
-                        f"Invalid INSERT (empty JSON) to {endpoint} does not respond with status 400: {response.status_code}: {response.text}",
-                    )
-                    empty_body_json_checked = True
-
-                if not endpoint_params_tested:
-                    negative_test_endpoint_parameters(
-                        test_object,
-                        TAG_ENDPOINT,
-                        {
-                            "database_name": database_name,
-                            "table_name": table_name,
-                            "table_type": table_type,
-                        },
-                        "POST",
-                        request_params,
-                    )
-                    endpoint_params_tested = True
-
-            else:
-                # check that tables with tagging disabled cannot INSERT tags
-                test_object.assertEqual(
-                    response.status_code,
-                    400,
-                    f"Invalid insert (tagging disabled) to {endpoint} did not respond with status 400: {response.status_code}: {response.text}",
-                )
 
 
 class TestSelectEndpoints(unittest.TestCase):
@@ -220,48 +225,10 @@ class TestSelectEndpoints(unittest.TestCase):
             database_name = to_lower_snake_case(database_info["dbname"])
             for table_info in database_info["tables"]:
                 table_name = to_lower_snake_case(table_info["tableName"])
-                payload = create_values(table_info)
-                endpoint = DATA_ENDPOINT.substitute(
-                    {"database_name": database_name, "table_name": table_name}
-                )
-                request_params: dict[str, Any] = {
-                    **GENERIC_REQUEST_PARAMS,
-                    "url": endpoint,
-                    "json": payload,
-                }
-
-                test_generic_valid_INSERT(self, request_params)
-
-                # test UPSERT
-                request_params["json"]["id"] = 6
-                test_generic_valid_INSERT(self, request_params)
-
-                if not endpoint_params_tested:
-                    negative_test_endpoint_parameters(
-                        self,
-                        DATA_ENDPOINT,
-                        {"database_name": database_name, "table_name": table_name},
-                        "POST",
-                        {
-                            **request_params,
-                        },
-                    )
-                    endpoint_params_tested = True
-
-                if not data_empty_body_tested:
-                    test_empty_insert(self, request_params)
-                    data_empty_body_tested = True
-
-                # descriptors
-                for descriptor_info in table_info.get("descriptors", []):
-                    descriptor_name = to_lower_snake_case(descriptor_info["name"])
-                    payload = create_values(descriptor_info)
-                    endpoint = DESCRIPTOR_ENDPOINT.substitute(
-                        {
-                            "database_name": database_name,
-                            "table_name": table_name,
-                            "descriptor_name": descriptor_name,
-                        },
+                with self.subTest(database=database_name, table=table_name):
+                    payload = create_values(table_info)
+                    endpoint = DATA_ENDPOINT.substitute(
+                        {"database_name": database_name, "table_name": table_name}
                     )
                     request_params: dict[str, Any] = {
                         **GENERIC_REQUEST_PARAMS,
@@ -275,22 +242,62 @@ class TestSelectEndpoints(unittest.TestCase):
                     request_params["json"]["id"] = 6
                     test_generic_valid_INSERT(self, request_params)
 
-                    if not descriptor_endpoint_params_tested:
+                    if not endpoint_params_tested:
+                        endpoint_params_tested = True
                         negative_test_endpoint_parameters(
                             self,
-                            DESCRIPTOR_ENDPOINT,
-                            {
-                                "database_name": database_name,
-                                "table_name": table_name,
-                                "descriptor_name": descriptor_name,
-                            },
+                            DATA_ENDPOINT,
+                            {"database_name": database_name, "table_name": table_name},
                             "POST",
                             {
                                 **request_params,
                             },
                         )
-                        descriptor_endpoint_params_tested = True
 
-                    if not descriptor_empty_body_tested:
+                    if not data_empty_body_tested:
+                        data_empty_body_tested = True
                         test_empty_insert(self, request_params)
-                        descriptor_empty_body_tested = True
+
+                # descriptors
+                for descriptor_info in table_info.get("descriptors", []):
+                    descriptor_name = to_lower_snake_case(descriptor_info["name"])
+                    with self.subTest(database=database_name, table=table_name, descriptor=descriptor_name):
+                        payload = create_values(descriptor_info)
+                        endpoint = DESCRIPTOR_ENDPOINT.substitute(
+                            {
+                                "database_name": database_name,
+                                "table_name": table_name,
+                                "descriptor_name": descriptor_name,
+                            },
+                        )
+                        request_params: dict[str, Any] = {
+                            **GENERIC_REQUEST_PARAMS,
+                            "url": endpoint,
+                            "json": payload,
+                        }
+
+                        test_generic_valid_INSERT(self, request_params)
+
+                        # test UPSERT
+                        request_params["json"]["id"] = 6
+                        test_generic_valid_INSERT(self, request_params)
+
+                        if not descriptor_endpoint_params_tested:
+                            descriptor_endpoint_params_tested = True
+                            negative_test_endpoint_parameters(
+                                self,
+                                DESCRIPTOR_ENDPOINT,
+                                {
+                                    "database_name": database_name,
+                                    "table_name": table_name,
+                                    "descriptor_name": descriptor_name,
+                                },
+                                "POST",
+                                {
+                                    **request_params,
+                                },
+                            )
+
+                        if not descriptor_empty_body_tested:
+                            descriptor_empty_body_tested = True
+                            test_empty_insert(self, request_params)

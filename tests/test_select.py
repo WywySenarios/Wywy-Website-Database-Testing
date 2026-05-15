@@ -111,25 +111,26 @@ def test_select_endpoint(
         endpoint = endpoint_template.substitute(computed_endpoint_params)
         computed_request_params: dict[str, Any] = {**request_params, "url": endpoint}
 
-        if not endpoint_security_tested:
-            test_endpoint_security(test_object, endpoint)
-            endpoint_security_tested = True
+        with test_object.subTest(endpoint=endpoint, phase="empty_or_security"):
+            if not endpoint_security_tested:
+                endpoint_security_tested = True
+                test_endpoint_security(test_object, endpoint)
 
-        # main data
-        response = GET(**computed_request_params)
-        response_validator(
-            test_object, response, entry_schema, response_validator_options
-        )
-
-        if not negative_endpoint_paramters_tested:
-            negative_test_endpoint_parameters(
-                test_object,
-                endpoint_template,
-                computed_endpoint_params,
-                "GET",
-                computed_request_params,
+            # main data
+            response = GET(**computed_request_params)
+            response_validator(
+                test_object, response, entry_schema, response_validator_options
             )
-            negative_endpoint_paramters_tested = True
+
+            if not negative_endpoint_paramters_tested:
+                negative_endpoint_paramters_tested = True
+                negative_test_endpoint_parameters(
+                    test_object,
+                    endpoint_template,
+                    computed_endpoint_params,
+                    "GET",
+                    computed_request_params,
+                )
 
     if valid_on_empty_database:
         populate_database()
@@ -140,11 +141,12 @@ def test_select_endpoint(
         endpoint = endpoint_template.substitute(computed_endpoint_params)
         computed_request_params: dict[str, Any] = {**request_params, "url": endpoint}
 
-        # main data
-        response = GET(**computed_request_params)
-        response_validator(
-            test_object, response, entry_schema, response_validator_options
-        )
+        with test_object.subTest(endpoint=endpoint, phase="populated"):
+            # main data
+            response = GET(**computed_request_params)
+            response_validator(
+                test_object, response, entry_schema, response_validator_options
+            )
 
 
 def assert_data_response(
