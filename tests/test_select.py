@@ -168,8 +168,7 @@ def assert_data_response(
     try:
         data = response.json()
     except JSONDecodeError as e:
-        test_object.fail(
-            f"""
+        test_object.fail(f"""
 Failed to decode JSON:
 --------exception--------
 {e}
@@ -178,8 +177,7 @@ Failed to decode JSON:
 ---repr(response.text)---
 {repr(response.text)}
 -------------------------
-            """
-        )
+            """)
 
     test_object.assertIsInstance(data, dict, "Data fetch response is not a dictionary")
 
@@ -220,6 +218,12 @@ Failed to decode JSON:
                     next(column_name_iterator),
                     f"{column_name}_altitude_accuracy",
                     f"Missing sub-column {column_name}_altitude_accuracy",
+                )
+            case "polymorphic pointer" | "polypointer":
+                test_object.assertEqual(
+                    next(column_name_iterator),
+                    f"{column_name}_type",
+                    f"Missing sub-column {column_name}_type",
                 )
             case _:
                 pass
@@ -275,6 +279,11 @@ Failed to decode JSON:
                     # @TODO enums
                     next(row_iterator)
                     pass
+                case "pointer":
+                    test_object.assertEqual(int(next(row_iterator)), 2)
+                case "polymorphic pointer" | "polypointer":
+                    test_object.assertEqual(int(next(row_iterator)), 2)
+                    test_object.assertEqual(next(row_iterator), "pointed")
                 case "geodetic point":
                     point = next(row_iterator)
                     test_object.assertIsInstance(

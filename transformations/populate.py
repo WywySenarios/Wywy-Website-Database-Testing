@@ -2,6 +2,8 @@ import psycopg
 from psycopg import sql
 from wywy_website_types import DescriptorInfo, TableInfo, DataDatatype
 from utils import to_lower_snake_case
+from config import CONFIG
+from constants import CONN_CONFIG
 from .transform import table_transform, TransformTargets
 from typing import List, Any
 
@@ -75,16 +77,14 @@ def populate_transformation(cur: psycopg.Cursor, targets: TransformTargets):
     for target_table_name in tag_groups_tables:
         cur.execute(
             # @TODO more robust foreign keys
-            sql.SQL(
-                """
+            sql.SQL("""
                 INSERT INTO {target_table_name} (tag_id, group_name)
                 VALUES (1, %s), (1, %s), (1, %s), (1, %s), (1, %s),
                     (2, %s), (2, %s), (2, %s), (2, %s),
                     (3, %s), (3, %s), (3, %s),
                     (4, %s), (4, %s),
                     (5, %s);
-                """
-            ).format(target_table_name=sql.Identifier(target_table_name)),
+                """).format(target_table_name=sql.Identifier(target_table_name)),
             (
                 f"{target_table_name} group 1",
                 f"{target_table_name} group 1",
@@ -193,6 +193,25 @@ def populate_transformation(cur: psycopg.Cursor, targets: TransformTargets):
                     values.append(0.23)
                     values.append(2.3)
                     values.append(0.23)
+                case "pointer":
+                    columns_shape.append(
+                        sql.Identifier(f"{to_lower_snake_case(column_schema["name"])}")
+                    )
+                    values_shape.append(sql.Placeholder())
+                    values.append(2)
+                case "polymorphic pointer" | "polypointer":
+                    columns_shape.append(
+                        sql.Identifier(f"{to_lower_snake_case(column_schema["name"])}")
+                    )
+                    columns_shape.append(
+                        sql.Identifier(
+                            f"{to_lower_snake_case(column_schema["name"])}_type"
+                        )
+                    )
+                    values_shape.append(sql.Placeholder())
+                    values_shape.append(sql.Placeholder())
+                    values.append(2)
+                    values.append("pointed")
 
         for _ in range(5):
             cur.execute(
@@ -207,18 +226,30 @@ def populate_transformation(cur: psycopg.Cursor, targets: TransformTargets):
             )
 
     for target_table_name in tags_tables:
-        cur.execute(
-            sql.SQL(
-                """
+        cur.execute(sql.SQL("""
                 INSERT INTO {target_table_name} (entry_id, tag_id) VALUES
                     (1, 1), (2, 2), (3, 3), (4, 4), (5, 5),
                     (1, 1), (2, 2), (3, 3), (4, 4),
                     (1, 1), (2, 2), (3, 3),
                     (1, 1), (2, 2),
                     (1, 1);
-                """
-            ).format(target_table_name=sql.Identifier(target_table_name))
-        )
+                """).format(target_table_name=sql.Identifier(target_table_name)))
+
+
+def ensure_pointed_tables():
+    for databaseSchema in CONFIG["data"]:
+        dbname = to_lower_snake_case(databaseSchema["dbname"])
+        with psycopg.connect(**CONN_CONFIG, dbname=dbname, autocommit=True) as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "CREATE TABLE IF NOT EXISTS pointed (id SERIAL PRIMARY KEY);"
+                )
+                cur.execute(
+                    "INSERT INTO pointed (id) VALUES (1), (2), (3), (4), (5) ON CONFLICT (id) DO NOTHING;"
+                )
+
+
+ensure_pointed_tables()
 
 
 def populate_database():
@@ -266,6 +297,11 @@ def create_values(schema: TableInfo | DescriptorInfo) -> dict[str, DataDatatype]
                 output[f"{column_name}_latlong_accuracy"] = 0.23
                 output[f"{column_name}_altitude"] = 2.3
                 output[f"{column_name}_altitude_accuracy"] = 0.23
+            case "pointer":
+                output[column_name] = 2
+            case "polymorphic pointer" | "polypointer":
+                output[column_name] = 2
+                output[f"{column_name}_type"] = "pointed"
 
             # @TODO comments
 
