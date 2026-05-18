@@ -1,3 +1,5 @@
+import os
+
 import psycopg
 from psycopg import sql
 from constants import CONN_CONFIG
@@ -23,5 +25,6 @@ def purge_database():
 
     table_transform(purge_transformation)
 
-    with psycopg.connect(**CONN_CONFIG, dbname="info", autocommit=True) as conn:
-        conn.execute("TRUNCATE sync_status RESTART IDENTITY CASCADE;")
+    if os.environ.get("SYNC_STATUS", "false").lower() == "true":
+        with psycopg.connect(**CONN_CONFIG, dbname="info", autocommit=True) as conn:
+            conn.execute("TRUNCATE sync_status RESTART IDENTITY CASCADE;")
