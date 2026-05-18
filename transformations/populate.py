@@ -58,6 +58,11 @@ def populate_transformation(cur: psycopg.Cursor, targets: TransformTargets):
                 f"{target_table_name} tag 5",
             ),
         )
+        cur.execute(
+            sql.SQL(
+                "SELECT setval(pg_get_serial_sequence({table_name}, 'id'), 5)"
+            ).format(table_name=sql.Literal(target_table_name))
+        )
 
     for target_table_name in tag_aliases_tables:
         cur.execute(
