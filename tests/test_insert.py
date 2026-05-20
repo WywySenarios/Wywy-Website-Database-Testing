@@ -258,6 +258,30 @@ class TestSelectEndpoints(unittest.TestCase):
                         data_empty_body_tested = True
                         test_empty_insert(self, request_params)
 
+                    # polypointer reference iteration and negative testing
+                    for column_info in table_info.get("schema", []):
+                        if column_info.get("datatype") in ("polymorphic pointer", "polypointer"):
+                            refs = column_info.get("references")
+                            if refs is not None:
+                                col_ref_name = to_lower_snake_case(column_info["name"])
+                                if isinstance(refs, str):
+                                    refs = [refs]
+                                for ref in refs:
+                                    poly_payload: dict[str, DataDatatype] = {**payload}
+                                    poly_payload[f"{col_ref_name}_type"] = ref
+                                    poly_request_params: dict[str, Any] = {**GENERIC_REQUEST_PARAMS, "url": endpoint, "json": poly_payload}
+                                    test_generic_valid_INSERT(self, poly_request_params)
+                                # Negative test
+                                invalid_payload: dict[str, DataDatatype] = {**payload}
+                                invalid_payload[f"{col_ref_name}_type"] = "nonexistent_table"
+                                invalid_request_params: dict[str, Any] = {**GENERIC_REQUEST_PARAMS, "url": endpoint, "json": invalid_payload}
+                                response = requests.post(**invalid_request_params)
+                                self.assertEqual(
+                                    response.status_code,
+                                    400,
+                                    f"Invalid polypointer _type for table {table_name} did not return status 400: {response.status_code}: {response.text}",
+                                )
+
                 # descriptors
                 for descriptor_info in table_info.get("descriptors", []):
                     descriptor_name = to_lower_snake_case(descriptor_info["name"])
@@ -301,3 +325,27 @@ class TestSelectEndpoints(unittest.TestCase):
                         if not descriptor_empty_body_tested:
                             descriptor_empty_body_tested = True
                             test_empty_insert(self, request_params)
+
+                        # polypointer reference iteration and negative testing
+                        for column_info in descriptor_info.get("schema", []):
+                            if column_info.get("datatype") in ("polymorphic pointer", "polypointer"):
+                                refs = column_info.get("references")
+                                if refs is not None:
+                                    col_ref_name = to_lower_snake_case(column_info["name"])
+                                    if isinstance(refs, str):
+                                        refs = [refs]
+                                    for ref in refs:
+                                        poly_payload: dict[str, DataDatatype] = {**payload}
+                                        poly_payload[f"{col_ref_name}_type"] = ref
+                                        poly_request_params: dict[str, Any] = {**GENERIC_REQUEST_PARAMS, "url": endpoint, "json": poly_payload}
+                                        test_generic_valid_INSERT(self, poly_request_params)
+                                    # Negative test
+                                    invalid_payload: dict[str, DataDatatype] = {**payload}
+                                    invalid_payload[f"{col_ref_name}_type"] = "nonexistent_table"
+                                    invalid_request_params: dict[str, Any] = {**GENERIC_REQUEST_PARAMS, "url": endpoint, "json": invalid_payload}
+                                    response = requests.post(**invalid_request_params)
+                                    self.assertEqual(
+                                        response.status_code,
+                                        400,
+                                        f"Invalid polypointer _type for descriptor {descriptor_name} did not return status 400: {response.status_code}: {response.text}",
+                                    )

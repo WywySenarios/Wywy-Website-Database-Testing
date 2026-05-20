@@ -306,7 +306,14 @@ def create_values(schema: TableInfo | DescriptorInfo) -> dict[str, DataDatatype]
                 output[column_name] = 2
             case "polymorphic pointer" | "polypointer":
                 output[column_name] = 2
-                output[f"{column_name}_type"] = "pointed"
+                refs = column_info.get("references")
+                if refs:
+                    if isinstance(refs, str):
+                        output[f"{column_name}_type"] = to_lower_snake_case(refs)
+                    else:
+                        output[f"{column_name}_type"] = to_lower_snake_case(refs[0])
+                else:
+                    output[f"{column_name}_type"] = "pointed"
 
             # @TODO comments
 
